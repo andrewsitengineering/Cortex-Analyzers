@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
+from censys.common.exceptions import CensysNotFoundException, CensysRateLimitExceededException, \
+    CensysUnauthorizedException
+from censys.search import CensysHosts, CensysCerts
 from cortexutils.analyzer import Analyzer
-from censys.certificates import CensysCertificates
-from censys.ipv4 import CensysIPv4
-from censys.websites import CensysWebsites
-from censys.exceptions import (
-    CensysNotFoundException,
-    CensysRateLimitExceededException,
-    CensysUnauthorizedException,
-)
 
 
 class CensysAnalyzer(Analyzer):
@@ -45,7 +40,7 @@ class CensysAnalyzer(Analyzer):
         :type ip: str
         :return: dict
         """
-        c = CensysIPv4(api_id=self.__uid, api_secret=self.__api_key)
+        c = CensysHosts(api_id=self.__uid, api_secret=self.__api_key)
         return c.view(ip)
 
     def search_certificate(self, hash):
@@ -56,7 +51,7 @@ class CensysAnalyzer(Analyzer):
         :type hash: str
         :return: dict
         """
-        c = CensysCertificates(api_id=self.__uid, api_secret=self.__api_key)
+        c = CensysCerts(api_id=self.__uid, api_secret=self.__api_key)
         return c.view(hash)
 
     def search_website(self, dom):
@@ -66,7 +61,7 @@ class CensysAnalyzer(Analyzer):
         :type dom: str
         :return: dict
         """
-        c = CensysWebsites(api_id=self.__uid, api_secret=self.__api_key)
+        c = CensysHosts(api_id=self.__uid, api_secret=self.__api_key)
         return c.view(dom)
 
     def search_ipv4(self, search):
@@ -76,8 +71,9 @@ class CensysAnalyzer(Analyzer):
         :type search: str
         :return: dict
         """
-        c = CensysIPv4(api_id=self.__uid, api_secret=self.__api_key)
-        return [x for x in c.search(search, fields=self.__fields,  max_records=self.__max_records, flatten=self.__flatten)]
+        c = CensysHosts(api_id=self.__uid, api_secret=self.__api_key)
+        return [x for x in
+                c.search(search, fields=self.__fields, max_records=self.__max_records, flatten=self.__flatten)]
 
     def run(self):
         try:
@@ -132,12 +128,12 @@ class CensysAnalyzer(Analyzer):
 
             for _, validator in raw.get("validation", []).items():
                 if (
-                    validator.get("blacklisted", False)
-                    or validator.get("in_revocation_set", False)
-                    or (
+                        validator.get("blacklisted", False)
+                        or validator.get("in_revocation_set", False)
+                        or (
                         not validator.get("whitelisted", False)
                         and not validator.get("valid", False)
-                    )
+                )
                 ):
                     trusted_count -= 1
             if trusted_count < validator_count:
@@ -157,7 +153,7 @@ class CensysAnalyzer(Analyzer):
         elif 'matches' in raw:
             result_count = len(raw.get('matches', []))
             taxonomies.append(self.build_taxonomy('info', 'Censys ipv4 search', 'results', result_count))
-            
+
         return {
             'taxonomies': taxonomies
         }
